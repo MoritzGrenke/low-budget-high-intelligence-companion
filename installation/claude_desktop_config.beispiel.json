@@ -8,7 +8,7 @@
         "-e", "MCP_TRANSPORT=stdio",
         "-e", "PAPERLESS_URL=http://paperless:8000",
         "-e", "PAPERLESS_TOKEN=HIER_TOKEN_EINTRAGEN",
-        "ghcr.io/moritzgrenke/easypaperless_mcp:latest"
+        "ghcr.io/moritzgrenke/easypaperless_mcp:v0.3.0"
       ]
     }
   }

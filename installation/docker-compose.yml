@@ -96,8 +96,7 @@ services:
       - ./export:/usr/src/paperless/export     # Ziel für Backups (siehe ANLEITUNG.md)
 
   mcp:
-    # TODO: vor Veröffentlichung auf eine feste Version statt "latest" setzen
-    image: ghcr.io/moritzgrenke/easypaperless_mcp:latest
+    image: ghcr.io/moritzgrenke/easypaperless_mcp:v0.3.0
     restart: unless-stopped
     depends_on:
       - paperless
