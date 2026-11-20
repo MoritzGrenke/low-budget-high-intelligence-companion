@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "paperless": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "--network", "lbhi-net",
+        "-e", "MCP_TRANSPORT=stdio",
+        "-e", "PAPERLESS_URL=http://paperless:8000",
+        "-e", "PAPERLESS_TOKEN=HIER_TOKEN_EINTRAGEN",
+        "ghcr.io/moritzgrenke/easypaperless_mcp:latest"
+      ]
+    }
+  }
+}

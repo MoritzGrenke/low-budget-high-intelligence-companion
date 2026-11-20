@@ -1,0 +1,125 @@
+# =============================================================================
+#  Low Budget, High Intelligence – Paperless-ngx + MCP-Server für Docker Desktop
+# =============================================================================
+#
+#  In dieser Datei muss NICHTS geändert werden.
+#  Alle Einstellungen (Passwörter usw.) stehen in der Datei "einstellungen.env".
+#  Gestartet wird über "Start.bat" (Windows) bzw. "Start.command" (Mac).
+#
+#  Enthaltene Dienste:
+#    paperless          – die Dokumentenverwaltung (Weboberfläche)
+#    db                 – Datenbank (PostgreSQL)
+#    redis              – interne Warteschlange für Paperless
+#    gotenberg, tika    – wandeln Office-Dateien (Word, Excel, E-Mails) in PDF um
+#    mcp                – MCP-Server: Schnittstelle, über die KI-Assistenten
+#                         auf die Dokumente zugreifen können
+# =============================================================================
+
+name: low-budget-high-intelligence
+
+services:
+  db:
+    image: docker.io/library/postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: ${DB_PASSWORT}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperless -d paperless"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: docker.io/library/redis:8
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+
+  gotenberg:
+    image: docker.io/gotenberg/gotenberg:8.20
+    restart: unless-stopped
+    # Härtung wie in der offiziellen Paperless-Compose: kein JavaScript in
+    # Dokumenten ausführen, nur lokale Dateien laden.
+    command:
+      - "gotenberg"
+      - "--chromium-disable-javascript=true"
+      - "--chromium-allow-list=file:///tmp/.*"
+
+  tika:
+    image: docker.io/apache/tika:3.2.2.0-full
+    restart: unless-stopped
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:2.18.2
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      gotenberg:
+        condition: service_started
+      tika:
+        condition: service_started
+    ports:
+      # Nur auf diesem Rechner erreichbar. Für Zugriff aus dem Heimnetz
+      # (z. B. vom Handy) "127.0.0.1:" entfernen.
+      - "127.0.0.1:8000:8000"
+    environment:
+      PAPERLESS_URL: http://localhost:8000
+      PAPERLESS_DBHOST: db
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_DBUSER: paperless
+      PAPERLESS_DBPASS: ${DB_PASSWORT}
+      PAPERLESS_REDIS: redis://redis:6379
+      PAPERLESS_SECRET_KEY: ${GEHEIMER_SCHLUESSEL}
+      # Wird nur beim allerersten Start angelegt:
+      PAPERLESS_ADMIN_USER: ${ADMIN_BENUTZER}
+      PAPERLESS_ADMIN_PASSWORD: ${ADMIN_PASSWORT}
+      PAPERLESS_TIME_ZONE: Europe/Berlin
+      PAPERLESS_OCR_LANGUAGE: deu+eng+fra
+      PAPERLESS_TIKA_ENABLED: 1
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
+      PAPERLESS_TIKA_ENDPOINT: http://tika:9998
+      # Docker Desktop meldet neue Dateien im Eingangsordner nicht an den
+      # Container weiter – deshalb alle 10 Sekunden selbst nachsehen.
+      PAPERLESS_CONSUMER_POLLING: 10
+    volumes:
+      - data:/usr/src/paperless/data
+      - media:/usr/src/paperless/media
+      # Sichtbare Ordner neben dieser Datei:
+      - ./eingang:/usr/src/paperless/consume   # Dateien hier ablegen → werden importiert
+      - ./export:/usr/src/paperless/export     # Ziel für Backups (siehe ANLEITUNG.md)
+
+  mcp:
+    # TODO: vor Veröffentlichung auf eine feste Version statt "latest" setzen
+    image: ghcr.io/moritzgrenke/easypaperless_mcp:latest
+    restart: unless-stopped
+    depends_on:
+      - paperless
+    ports:
+      # Nur auf diesem Rechner erreichbar.
+      - "127.0.0.1:8001:8000"
+    environment:
+      MCP_TRANSPORT: streamable-http
+      # Fest auf das Paperless in diesem Paket eingestellt – Clients können
+      # den Server nicht auf eine andere Paperless-Instanz umlenken.
+      PAPERLESS_URL: http://paperless:8000
+      # Kein Token hier! Jeder KI-Client schickt sein eigenes Paperless-Token
+      # im Header "X-Paperless-Token" mit (siehe ANLEITUNG.md).
+
+networks:
+  default:
+    # Fester Name, damit sich auch der Claude-Desktop-Weg (docker run …)
+    # in dieses Netzwerk einklinken kann.
+    name: lbhi-net
+
+volumes:
+  pgdata:
+  redisdata:
+  data:
+  media:

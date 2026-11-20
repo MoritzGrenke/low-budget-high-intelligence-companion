@@ -1,0 +1,11 @@
+# Laufzeitordner des Installationspakets (werden von Start.bat/.command angelegt)
+installation/eingang/
+installation/export/
+installation/einstellungen.env.tmp
+
+# Lokal ausgefüllte Kopien, falls jemand zum Testen kopiert
+*.lokal.env
+claude_desktop_config.json
+
+.DS_Store
+Thumbs.db
