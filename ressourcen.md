@@ -13,8 +13,4 @@
 
 ## Louis Lepoix
 
-TODO: Quellen, Sammlungen, Literatur, Ausstellungen
-
-## Weiterlesen
-
-TODO: verwandte Projekte, Artikel zu KI in Archiven / Digital Humanities
+- Website zu Leben und Werk von Louis Lepoix: <https://www.lepoix.info/>
